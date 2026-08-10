@@ -1,198 +1,479 @@
 ```
- ██████╗ ███████╗██╗███╗   ██╗████████╗
-██╔═══██╗██╔════╝██║████╗  ██║╚══██╔══╝    
+ ██████╗ ███████╗██╗███╗   ██╗████████╗   
+██╔═══██╗██╔════╝██║████╗  ██║╚══██╔══╝   
 ██║   ██║███████╗██║██╔██╗ ██║   ██║      
-██║   ██║╚════██║██║██║╚██╗██║   ██║       
+██║   ██║╚════██║██║██║╚██╗██║   ██║     
 ╚██████╔╝███████║██║██║ ╚████║   ██║      
- ╚═════╝ ╚══════╝╚═╝╚═╝  ╚═══╝   ╚═╝   
+ ╚═════╝ ╚══════╝╚═╝╚═╝  ╚═══╝   ╚═╝     
 ```
 
-> **field manual :: recon fundamentals for the working OSINT practitioner**
-> *know the target before the target knows you exist.*
+> **the deep-dive field manual :: 50 tools · 20 dorks · full workflows · worked examples**
+> *every entry below tells you not just WHAT it is, but WHAT you'd actually see when you run it.*
 
 ---
 
-## ⚡ 0x00 — GROUND RULES
+# 📖 TABLE OF CONTENTS
 
-- Recon is **80% patience, 20% tooling**. The tools don't think for you.
-- **Passive** = never touch the target's infrastructure. No packets to them, ever.
-- **Active** = you send traffic they *could* see in their logs.
-- Always operate inside **written scope/authorization**. No exceptions, no "just checking."
-- Document everything. Recon without notes is recon you'll redo.
-- **OPSEC applies to you too** — VPN/VPS, burner accounts, no fingerprint leakage.
+```
+0x00  Ground Rules & Legal Posture
+0x01  The OSINT Mindset & Cycle
+0x02  20 Google Dorks — fully explained with sample output
+0x03  50 Tools — category by category, with real usage examples
+0x04  Passive Recon — full walkthrough on a fictional target
+0x05  Active Recon — full walkthrough on a fictional target
+0x06  Correlation & Analysis Tradecraft
+0x07  OPSEC for the Investigator
+0x08  Closing Doctrine
+```
 
 ---
 
-## 🕶️ 0x01 — THE MINDSET (Fundamentals)
+# 0x00 — GROUND RULES & LEGAL POSTURE
 
-| Principle | What it means |
+- **Authorization first.** Passive OSINT on public data is generally legal in most jurisdictions, but *active* scanning (port scans, brute forcing, exploitation) against infrastructure you don't own or lack written permission for is **illegal** in most countries (CFAA in the US, Computer Misuse Act in the UK, etc.). This guide assumes a lawful engagement — a pentest with signed scope, a CTF, your own lab, or a bug bounty program's defined scope.
+- **Passive** = zero packets touch the target's systems. You query *third parties* (Google, Shodan's index, certificate transparency logs, WHOIS registries) who already scanned/indexed the target. The target's server logs show nothing.
+- **Active** = your machine talks directly to the target's infrastructure. Their firewall, WAF, and logs will see you.
+- **Document as you go.** Screenshot + timestamp + tool + command used. If you can't reproduce a finding six months later, it doesn't exist for reporting purposes.
+
+---
+
+# 0x01 — THE OSINT MINDSET & CYCLE
+
+The **Intelligence Cycle**, adapted for OSINT/recon work:
+
+```
+ PLAN ──► COLLECT ──► PROCESS ──► ANALYZE ──► DISSEMINATE ──► (loop back to PLAN)
+```
+
+| Stage | What actually happens |
 |---|---|
-| **Attack Surface Thinking** | Every subdomain, employee, PDF metadata field, and S3 bucket is a door. |
-| **OSINT Cycle** | Plan → Collect → Process → Analyze → Disseminate → Repeat |
-| **Correlation > Collection** | Raw data is noise. Linking username → email → breach → real name is the skill. |
-| **Diminishing Returns** | Know when to stop digging on one lead and pivot. |
-| **Chain of Custody** | Screenshot + timestamp + archive everything. Data disappears. |
-| **The 3 Whys** | Who owns this? Why does it exist? Why is it exposed? |
+| **Plan** | Define the target, the question you're answering ("what's their external attack surface?", "who are the key employees for a phishing pretext?"), and legal scope. |
+| **Collect** | Run tools/dorks, pull raw data — subdomains, emails, documents, breach hits. |
+| **Process** | Dedupe, normalize, discard stale/false data (e.g., dead subdomains, expired certs). |
+| **Analyze** | Correlate — this is where isolated facts become intelligence (see 0x06). |
+| **Disseminate** | Turn findings into a report, an attack plan, or a pretext — tailored to the audience. |
+
+**Core fundamentals every practitioner internalizes:**
+
+1. **Attack Surface Thinking** — every subdomain, exposed port, PDF metadata field, S3 bucket, and LinkedIn post is a potential entry point or leverage point.
+2. **Correlation > Collection** — 10,000 raw data points are worthless until two of them connect (e.g., a leaked password + a reused username = an account takeover path).
+3. **Diminishing Returns** — know when a lead has run dry and it's time to pivot to a new angle.
+4. **The 3 Whys** — Who owns this asset? Why does it exist? Why is it exposed the way it is?
+5. **Negative space matters** — a scrubbed LinkedIn profile or a deleted GitHub repo is itself a data point (something was worth hiding).
 
 ---
 
-## 🌐 0x02 — 20 ESSENTIAL GOOGLE DORKS
+# 0x02 — 20 GOOGLE DORKS (fully explained)
 
-```
-site:target.com                                  » scope enumeration
-site:target.com -www                              » non-standard subdomains
-site:target.com ext:pdf | ext:docx | ext:xlsx     » sensitive documents
-site:target.com intitle:"index of"                » open directory listings
-site:target.com inurl:admin | inurl:login          » exposed panels
-site:target.com filetype:env "DB_PASSWORD"        » leaked env/config files
-site:target.com intext:"internal use only"        » leaked internal docs
-site:pastebin.com "target.com"                    » credential/data dumps
-site:github.com "target.com" password             » hardcoded secrets in repos
-site:target.com inurl:wp-content | inurl:wp-admin » WordPress footprint
-intitle:"welcome to nginx" site:target.com         » default/misconfigured servers
-site:target.com ext:log                           » exposed log files
-site:target.com inurl:"/api/" filetype:json        » exposed API endpoints
-"target.com" intext:"@target.com" filetype:xls    » employee email harvesting
-site:linkedin.com/in "target company"             » employee enumeration
-site:target.com inurl:backup | inurl:.bak         » backup file exposure
-cache:target.com                                  » cached historical content
-site:s3.amazonaws.com "target"                    » exposed S3 buckets
-related:target.com                                » competitor/infra mapping
-site:target.com ext:sql | ext:db                  » exposed database dumps
-```
+Google dorking uses advanced search operators to surface content that's indexed but not meant to be easily found. Below, each dork includes **what it does**, **why it works**, and **a worked example**.
 
-**Advanced operators to chain:** `AROUND(n)` proximity search · `allintext:` · `numrange:` · `inanchor:` · combine with `-inurl:` to exclude noise.
+### 1. Scope enumeration
+```
+site:target.com
+```
+Lists every page Google has indexed under the domain. This is your baseline map of what's publicly visible. *Example:* `site:tesla.com` returns thousands of pages — press releases, investor docs, careers pages — giving you a feel for the site's structure before you even visit it.
+
+### 2. Non-standard subdomain discovery
+```
+site:target.com -www
+```
+Excludes the main `www` subdomain, surfacing things like `dev.target.com`, `staging.target.com`, or `internal.target.com` that Google happened to crawl.
+
+### 3. Sensitive document harvesting
+```
+site:target.com ext:pdf | ext:docx | ext:xlsx
+```
+Finds Office/PDF files — often internal reports, org charts, or policy docs that get uploaded to a public-facing CMS by accident. *Example:* `site:target.com ext:xlsx "employee"` has historically surfaced HR spreadsheets left in unlinked but indexed directories.
+
+### 4. Open directory listings
+```
+site:target.com intitle:"index of"
+```
+`intitle:"index of"` is the signature of an Apache/Nginx auto-generated directory listing — meaning someone left directory browsing enabled. You can literally browse the raw file tree.
+
+### 5. Exposed admin/login panels
+```
+site:target.com inurl:admin | inurl:login
+```
+Surfaces login portals that are indexed (ideally they shouldn't be — a well-configured site would `robots.txt`-disallow or noindex these).
+
+### 6. Leaked environment/config files
+```
+site:target.com filetype:env "DB_PASSWORD"
+```
+`.env` files sometimes get deployed into public web roots by mistake. If Google indexed one, it may contain database credentials, API keys, or secret tokens in plaintext.
+
+### 7. Internal document leakage
+```
+site:target.com intext:"internal use only"
+```
+Searches the *body text* of indexed pages/documents for phrases that signal the content wasn't meant for public eyes.
+
+### 8. Paste-site credential dumps
+```
+site:pastebin.com "target.com"
+```
+Pastebin (and similar sites like Ghostbin) are common dumping grounds for leaked credential lists, source code snippets, or breach data. Searching for the target's domain inside these sites surfaces third-party leaks.
+
+### 9. Hardcoded secrets in public repos
+```
+site:github.com "target.com" password
+```
+Developers accidentally commit API keys, database strings, or hardcoded passwords referencing the target domain. This dork surfaces those commits/repos.
+
+### 10. WordPress footprinting
+```
+site:target.com inurl:wp-content | inurl:wp-admin
+```
+Confirms WordPress usage and can reveal plugin names in `wp-content/plugins/` paths — letting you cross-reference against known-vulnerable plugin versions later.
+
+### 11. Default/misconfigured server pages
+```
+intitle:"welcome to nginx" site:target.com
+```
+A default Nginx/Apache welcome page being indexed means a server was likely spun up and never properly configured — a soft signal of shadow IT or forgotten infrastructure.
+
+### 12. Exposed log files
+```
+site:target.com ext:log
+```
+Log files can leak internal IPs, usernames, stack traces (which reveal software versions), or even session tokens.
+
+### 13. Exposed API endpoints
+```
+site:target.com inurl:"/api/" filetype:json
+```
+Finds indexed raw JSON responses from API endpoints — sometimes revealing internal object structures, user IDs, or endpoints not documented anywhere public.
+
+### 14. Employee email harvesting
+```
+"target.com" intext:"@target.com" filetype:xls
+```
+Spreadsheets containing the company's email domain in plaintext — often contact lists or distribution lists — are gold for building a phishing target list or guessing the email naming convention (`first.last@`, `flast@`, etc.).
+
+### 15. Employee enumeration via LinkedIn
+```
+site:linkedin.com/in "target company"
+```
+Surfaces individual employee profiles indexed by Google (works even without a LinkedIn account/login), useful for org-chart building and social engineering pretext research.
+
+### 16. Backup file exposure
+```
+site:target.com inurl:backup | inurl:.bak
+```
+Backup files (`.bak`, `.old`, `backup.zip`) left in web-accessible directories often contain full source code or database dumps.
+
+### 17. Historical cached content
+```
+cache:target.com
+```
+Pulls Google's last cached snapshot of a page — useful if the live page has since been taken down or modified (though Google has been deprecating this operator, the Wayback Machine is now the more reliable fallback, see Tool #—Wayback).
+
+### 18. Exposed cloud storage
+```
+site:s3.amazonaws.com "target"
+```
+Searches for S3 bucket names/content referencing the target — misconfigured "public" buckets are one of the most common real-world breach vectors.
+
+### 19. Competitor / infrastructure mapping
+```
+related:target.com
+```
+Google's algorithm suggests "related" sites — sometimes surfacing sister companies, subsidiaries, or shared-infrastructure partners you didn't know about.
+
+### 20. Exposed database dumps
+```
+site:target.com ext:sql | ext:db
+```
+Raw SQL dump files left in a public directory are a worst-case exposure — full schema and often full data.
+
+**Advanced operators to chain into any of the above:**
+| Operator | Use |
+|---|---|
+| `AROUND(n)` | Finds two terms within `n` words of each other — tighter than a generic AND search |
+| `allintext:` | Forces all following terms to appear in the page body |
+| `inanchor:` | Searches the anchor text of inbound links — good for finding how a page is referenced elsewhere |
+| `-inurl:` | Excludes noisy URL patterns (e.g., `-inurl:blog` to cut marketing content) |
+| `numrange:1000-9999` | Searches for a number within a range — useful for finding document/invoice ID patterns |
 
 ---
 
-## 🧰 0x03 — 50 TOOLS OF THE TRADE
+# 0x03 — 50 TOOLS (with explained real-world usage)
 
-### 🔍 Passive Recon / OSINT Frameworks
-```
-01. theHarvester        » email, subdomain, employee enum from public sources
-02. Maltego              » entity relationship mapping & visualization
-03. SpiderFoot            » automated OSINT aggregation, 200+ modules
-04. Recon-ng              » modular recon framework, Metasploit-style
-05. Amass                 » attack surface mapping & subdomain enum
-06. Shodan                » internet-connected device search engine
-07. Censys                 » internet-wide scan data & cert transparency
-08. FOCA                   » metadata extraction from public documents
-09. Google Dorks / GHDB   » search-engine based recon
-10. Wayback Machine       » historical snapshots of target sites
-```
+## 🔍 Passive Recon / OSINT Frameworks (1–10)
 
-### 🧑‍💻 People / Social Recon
-```
-11. Sherlock               » username enumeration across 300+ platforms
-12. Social-Analyzer        » profile discovery & analysis across networks
-13. Whatsmyname            » username presence checker (web version too)
-14. Pipl / Intelius        » people-search aggregators
-15. Hunter.io               » email discovery & verification
-16. Have I Been Pwned      » breach/credential exposure lookup
-17. LinkedIn + Crosslinked » employee/org chart enumeration
-18. Namechk                 » username/domain availability across platforms
-19. IntelTechniques Tools  » Michael Bazzell's search tool suite
-20. Pastebin/Dehashed      » leaked credential & paste search
-```
+**1. theHarvester**
+Aggregates emails, subdomains, and employee names from search engines, PGP key servers, and Shodan. *Example:* `theHarvester -d target.com -b all` pulls from every supported source in one pass and outputs a clean list of `@target.com` addresses and subdomains — usually your very first command on a new engagement.
 
-### 🌐 Domain / Infrastructure Recon
-```
-21. WHOIS / RDAP           » domain registration data
-22. DNSdumpster            » DNS recon & subdomain mapping
-23. crt.sh                  » certificate transparency log search
-24. Sublist3r               » subdomain enumeration
-25. Assetfinder             » fast subdomain discovery
-26. dnsrecon                » DNS enumeration & zone transfer testing
-27. Fierce                  » DNS recon for non-contiguous IP space
-28. SecurityTrails          » historical DNS/WHOIS/passive DNS data
-29. BuiltWith               » tech stack fingerprinting
-30. Wappalyzer               » web technology identification
-```
+**2. Maltego**
+A graph-based link-analysis tool. You drop in a "seed" entity (a domain, email, or person) and run "transforms" (plugins) that automatically pull related entities — DNS records, social profiles, company officers — and draw them as a connected graph. *Example:* seed with a domain, run the "to DNS Name" and "to Email address" transforms, and watch a visual map of the org's digital footprint build itself.
 
-### 🖥️ Active Recon / Scanning
-```
-31. Nmap                    » port/service/OS scanning (the classic)
-32. Masscan                 » internet-scale fast port scanning
-33. httpx                    » HTTP probing at scale
-34. Nuclei                   » template-based vuln scanning
-35. Gobuster / ffuf          » directory & subdomain brute-forcing
-36. Nikto                    » web server vulnerability scanning
-37. WhatWeb                  » web app fingerprinting
-38. Aquatone                 » visual recon / screenshot subdomains
-39. EyeWitness                » screenshot + service report of hosts
-40. Netcat                    » banner grabbing & manual probing
-```
+**3. SpiderFoot**
+Fully automated OSINT aggregator with 200+ modules. Point it at a domain/IP/email and it runs nearly every passive technique in this guide simultaneously, correlating results into one report. *Example:* `spiderfoot -s target.com -m sfp_dnsresolve,sfp_crt,sfp_shodan` runs a targeted scan combining DNS, cert transparency, and Shodan modules.
 
-### 🗺️ Geo / Image / Metadata
-```
-41. ExifTool                 » image/document metadata extraction
-42. Google Earth Pro         » geolocation cross-referencing
-43. Yandex Reverse Image     » reverse image search (best for faces)
-44. TinEye                    » reverse image search
-45. Overpass Turbo            » OpenStreetMap data queries for geoint
-46. SunCalc                    » shadow analysis for geolocation timing
-```
+**4. Recon-ng**
+A modular, Metasploit-styled recon framework with a workspace/module system. *Example:* inside the console, `marketplace install all` then `modules load recon/domains-hosts/hackertarget` pulls hostnames for a domain — everything is stored in a local database for later correlation.
 
-### 🧩 Aggregators / Automation / Misc
-```
-47. OSINT Framework (osintframework.com) » categorized tool directory
-48. Datasploit                » automated OSINT for domains/people/orgs
-49. GHunt                      » Google account OSINT (email → footprint)
-50. Holehe                     » check email registration across platforms
-```
+**5. Amass**
+OWASP's attack-surface-mapping tool; combines passive sources (certificate transparency, DNS datasets) with active brute-forcing. *Example:* `amass enum -passive -d target.com` gives a pure passive subdomain list with zero direct contact with the target.
+
+**6. Shodan**
+A search engine that continuously scans the entire internet and indexes banners from open ports/services. *Example:* search `org:"Target Corp" port:3389` to find every exposed RDP server the company owns — without you scanning a single IP yourself, because Shodan already did.
+
+**7. Censys**
+Similar to Shodan but with a stronger focus on certificate and host metadata. *Example:* `services.tls.certificates.leaf_data.subject.organization: "Target Inc"` surfaces every host presenting a cert issued to that org — a great way to find infrastructure that doesn't share the main domain name.
+
+**8. FOCA**
+Extracts and analyzes metadata from public documents (PDF, Office files) harvested off a domain. *Example:* point FOCA at `target.com`, let it download every indexed `.docx`/`.pdf`, and it'll extract author names, internal usernames, printer paths, and software versions from the metadata — often revealing the internal domain naming convention (`CORP\jsmith`).
+
+**9. Google Dorks / GHDB (Google Hacking Database)**
+The curated, community-maintained database of dork patterns (exploit-db.com/google-hacking-database) mapped to what they typically expose — login panels, error messages, vulnerable software versions.
+
+**10. Wayback Machine (web.archive.org)**
+Historical snapshots of any indexed webpage. *Example:* if a page mentioning `api-internal.target.com` was removed today, you can still find it at `web.archive.org/web/2023*/target.com/careers` — old careers pages are a goldmine for leaked tech-stack details in job listings.
+
+## 🧑‍💻 People / Social Recon (11–20)
+
+**11. Sherlock**
+Checks a single username's existence across 300+ platforms in one run. *Example:* `python sherlock.py johndoe123` returns every site where that exact handle is registered — instantly pivoting from "one username" to "a dozen linked accounts."
+
+**12. Social-Analyzer**
+Similar to Sherlock but adds profile-analysis scoring (confidence that a found profile actually belongs to the target person, using name/photo similarity).
+
+**13. WhatsMyName**
+A username-enumeration project/tool (also available as a web app) with a continuously updated site list, useful as a Sherlock alternative or cross-check.
+
+**14. Pipl / Intelius**
+Commercial people-search aggregators that compile public records, past addresses, and phone numbers into a single profile — useful for identity verification during an engagement (with appropriate authorization).
+
+**15. Hunter.io**
+Given a domain, predicts and verifies the corporate email format. *Example:* `hunter.io/search/target.com` might reveal the pattern is `first.last@target.com` along with a confidence score and a list of already-discovered real addresses — critical for building a phishing-simulation target list.
+
+**16. Have I Been Pwned (HIBP)**
+Checks an email or domain against known breach datasets. *Example:* querying `jsmith@target.com` might show it appeared in the "Collection #1" breach, telling you which password (if reused) could be a valid credential-stuffing vector.
+
+**17. LinkedIn + CrossLinked**
+CrossLinked scrapes LinkedIn search results (via Google/Bing caching to avoid LinkedIn's own anti-scraping) to bulk-harvest employee names and titles. *Example:* `crosslinked -f "{first}.{last}@target.com" target company` outputs a CSV of guessed real employee emails built from scraped names.
+
+**18. Namechk**
+Checks username *and domain* availability simultaneously across many platforms — useful both offensively (impersonation-risk assessment) and defensively (brand protection).
+
+**19. IntelTechniques Tools (Michael Bazzell's suite)**
+A curated set of web-based search tools/forms covering everything from phone-number lookups to image metadata — the de facto "OSINT swiss army knife" bookmark page for investigators.
+
+**20. Dehashed**
+A searchable, indexed database of breach data (paid access) — lets you search by email, username, password, IP, or even name and get back matched breach records far faster than manually trawling paste sites.
+
+## 🌐 Domain / Infrastructure Recon (21–30)
+
+**21. WHOIS / RDAP**
+Domain registration lookup. *Example:* `whois target.com` reveals registrar, creation/expiry dates, and (if not privacy-protected) registrant contact info — sometimes still leaking an internal admin's name or a shared registration pattern across sister domains.
+
+**22. DNSdumpster**
+Free web-based DNS recon tool that visually maps a domain's DNS records, mail servers (MX), and hosting providers, and often surfaces subdomains other tools miss.
+
+**23. crt.sh**
+Searches Certificate Transparency (CT) logs — since 2018, all publicly trusted SSL certs are logged publicly. *Example:* `crt.sh/?q=%.target.com` returns every subdomain that ever had a certificate issued, including short-lived dev/staging environments long since taken offline but still logged forever.
+
+**24. Sublist3r**
+Classic subdomain enumeration tool pulling from multiple search engines and DNS sources in one command: `sublist3r -d target.com`.
+
+**25. Assetfinder**
+Fast, lightweight subdomain discovery tool, great for chaining into pipelines: `assetfinder target.com | httpx -silent` to instantly get a list of *live* subdomains.
+
+**26. dnsrecon**
+DNS enumeration tool that also tests for zone transfer misconfigurations. *Example:* `dnsrecon -d target.com -t axfr` attempts a zone transfer — if the DNS server is misconfigured, it hands over the ENTIRE zone file (every subdomain and internal record) in one request. This crosses into active territory.
+
+**27. Fierce**
+DNS reconnaissance tool built for non-contiguous IP-space discovery — finds nearby/related IP blocks that a standard subdomain scan would miss.
+
+**28. SecurityTrails**
+Commercial platform offering historical DNS, WHOIS, and passive-DNS data — lets you see what an IP or subdomain resolved to *last year*, not just today, which is invaluable for tracking infrastructure changes over time.
+
+**29. BuiltWith**
+Technology-stack fingerprinting via a browser lookup/API. *Example:* `builtwith.com/target.com` shows the CMS, analytics tools, CDN, and even the specific JavaScript framework version in use — informing which known CVEs might apply.
+
+**30. Wappalyzer**
+Browser extension / CLI version of tech fingerprinting, faster for quick manual checks while browsing a target site live.
+
+## 🖥️ Active Recon / Scanning (31–40)
+
+**31. Nmap**
+The foundational port/service/OS scanner. *Example:* `nmap -sV -p- target.com` does a full 65535-port scan with service-version detection — this is the classic "what's actually running" step, and it *will* appear in the target's firewall/IDS logs.
+
+**32. Masscan**
+Internet-scale port scanner capable of scanning the entire IPv4 space in minutes. *Example:* `masscan -p1-65535 10.0.0.0/8 --rate 10000` — useful for quickly sweeping large authorized IP ranges before doing a deeper Nmap pass on the interesting hosts.
+
+**33. httpx**
+Fast HTTP probing tool (from ProjectDiscovery) — takes a list of hosts and tells you which ones are actually alive over HTTP/S, with status codes and titles: `cat subdomains.txt | httpx -title -status-code`.
+
+**34. Nuclei**
+Template-based vulnerability scanner — thousands of community-maintained YAML templates check for specific CVEs, misconfigurations, and exposed panels. *Example:* `nuclei -u https://target.com -t cves/` runs every known CVE template against the target in one pass.
+
+**35. Gobuster / ffuf**
+Directory and subdomain brute-forcers. *Example:* `ffuf -w wordlist.txt -u https://target.com/FUZZ` hammers the server with requests for every word in a wordlist, revealing hidden paths like `/backup/` or `/api/v2/internal/` that aren't linked anywhere.
+
+**36. Nikto**
+Web-server vulnerability scanner that checks for thousands of known dangerous files, outdated server software, and misconfigurations in one automated pass: `nikto -h https://target.com`.
+
+**37. WhatWeb**
+Fingerprints web technologies actively by sending requests and analyzing response signatures (headers, cookies, HTML patterns) — more aggressive/thorough than passive fingerprinting tools like BuiltWith.
+
+**38. Aquatone**
+Takes a list of hosts, visits each one, and generates a visual screenshot report — critical for triaging hundreds of subdomains quickly by *eye* rather than reading raw HTTP responses one by one.
+
+**39. EyeWitness**
+Similar to Aquatone — screenshots web services plus RDP/VNC where possible, and auto-categorizes by likely purpose (login page, default page, etc.).
+
+**40. Netcat ("the network Swiss army knife")**
+Manual banner grabbing and raw protocol probing. *Example:* `nc target.com 25` connects directly to the mail server's SMTP port and lets you read the raw banner (often revealing the exact mail server software/version) and manually issue commands like `VRFY` to check if a username exists.
+
+## 🗺️ Geo / Image / Metadata (41–46)
+
+**41. ExifTool**
+Extracts embedded metadata from images and documents. *Example:* `exiftool photo.jpg` can reveal GPS coordinates, camera model, and the exact timestamp a photo was taken — a classic geolocation starting point when investigating an image posted on social media.
+
+**42. Google Earth Pro**
+Used to cross-reference GPS coordinates or visual landmarks (extracted via ExifTool or spotted in a photo background) against real-world satellite imagery to confirm a location.
+
+**43. Yandex Reverse Image Search**
+Widely regarded as the strongest reverse-image search engine for facial matching (better than Google for finding *where else* a specific face/photo appears online) — a staple for verifying claimed identities.
+
+**44. TinEye**
+Reverse image search focused on finding the *earliest* known instance of an image online — useful for debunking a photo's claimed recency/context.
+
+**45. Overpass Turbo**
+A query interface for OpenStreetMap data — lets you pull structured geographic data (all ATMs in a city, all buildings matching a description) to narrow down a geolocation candidate.
+
+**46. SunCalc**
+Calculates sun position/shadow angles for a given date, time, and location — used in advanced geolocation to verify or narrow down *when* a photo was taken based on shadow direction/length visible in the image.
+
+## 🧩 Aggregators / Automation (47–50)
+
+**47. OSINT Framework (osintframework.com)**
+Not a tool itself but a categorized, clickable directory of hundreds of OSINT resources organized by data type (username, email, domain, etc.) — the best "I don't know where to start" reference.
+
+**48. Datasploit**
+Automates OSINT collection across domains, people, and companies, aggregating output from multiple APIs (Shodan, HIBP, etc.) into one report.
+
+**49. GHunt**
+Specifically targets Google accounts — given an email address, it can reveal the associated Google ID, public Maps reviews, YouTube channel, and other linked Google services metadata.
+
+**50. Holehe**
+Checks whether an email address is registered on 120+ platforms by abusing each platform's "forgot password" or "sign up" flow response differences — without ever sending an actual email or notification to the target: `holehe target@email.com`.
 
 ---
 
-## 🕵️ 0x04 — PASSIVE RECON WORKFLOW
+# 0x04 — PASSIVE RECON: FULL WALKTHROUGH
+
+**Scenario:** authorized engagement against `example-corp.com`. Goal: map the external attack surface and employee footprint without sending a single packet to their infrastructure.
 
 ```
-[1] WHOIS + RDAP lookup ─────────► registrant, nameservers, creation date
-[2] crt.sh / cert transparency ──► subdomain harvest via SSL certs
-[3] DNSdumpster + SecurityTrails► historical DNS, mail servers, ASN
-[4] Google/Bing/Yandex dorking ──► indexed files, panels, leaked docs
-[5] Shodan/Censys ────────────────► exposed services, banners, no direct contact
-[6] LinkedIn/GitHub enum ────────► org structure, tech stack, tribal knowledge
-[7] Breach DB correlation ───────► HIBP, Dehashed → credential exposure
-[8] Wayback Machine ──────────────► deleted/changed content, old endpoints
+STEP 1 — WHOIS + RDAP
+  $ whois example-corp.com
+  → registrar, creation date, nameservers (e.g., "ns1.cloudflare.com" tells you they're behind Cloudflare)
+
+STEP 2 — Certificate Transparency sweep
+  → crt.sh/?q=%.example-corp.com
+  → returns: dev.example-corp.com, api-staging.example-corp.com, vpn.example-corp.com
+  → these logged certs may point to environments no longer linked from the main site
+
+STEP 3 — DNS mapping
+  → DNSdumpster + SecurityTrails
+  → confirms MX records point to Google Workspace (tells you the phishing pretext should mimic Gmail's login UI)
+
+STEP 4 — Dork sweep
+  → site:example-corp.com ext:pdf   → finds a 2022 "IT Onboarding Guide.pdf"
+  → FOCA metadata extraction on that PDF reveals internal usernames formatted as "e.surname"
+
+STEP 5 — Shodan/Censys pass
+  → org:"Example Corp"
+  → reveals an exposed Jenkins instance on port 8080 — zero packets sent by you, Shodan already scanned it
+
+STEP 6 — People enumeration
+  → CrossLinked scrape of LinkedIn → 340 employee names
+  → Hunter.io confirms email format is "e.surname@example-corp.com" with 92% confidence
+  → cross-reference against the FOCA-extracted username pattern from Step 4 — they match, confirming the format
+
+STEP 7 — Breach correlation
+  → HIBP query on 10 sampled emails → 4 appear in past breaches
+  → Dehashed lookup on those 4 → 1 shows a plaintext password pattern ("CompanyName2019!") suggesting a predictable internal password policy
+
+STEP 8 — Historical check
+  → Wayback Machine on the careers page → an old job listing for "DevOps Engineer" mentions "our AWS + Jenkins + Terraform stack" — confirms and dates the Jenkins finding from Step 5
 ```
-**Rule of passive recon:** if your traffic ever reaches the target's server directly, it's not passive anymore.
+
+**Output of this phase:** a full subdomain list, confirmed email format, a named list of real employees, one exposed CI/CD tool, and a plausible password pattern — all without the target's logs showing a single request from you.
 
 ---
 
-## ⚔️ 0x05 — ACTIVE RECON WORKFLOW
+# 0x05 — ACTIVE RECON: FULL WALKTHROUGH
+
+**Scenario:** same engagement, now authorized to move to active scanning against the discovered scope.
 
 ```
-[1] Nmap (top ports → full scan) ─► open ports, service versions, OS guess
-[2] httpx + Wappalyzer ───────────► live host confirmation, tech stack
-[3] Gobuster/ffuf directory brute─► hidden endpoints, admin panels
-[4] Nuclei template scan ─────────► known CVEs & misconfig detection
-[5] Nikto/WhatWeb ─────────────────► web server specific weaknesses
-[6] Screenshot sweep (Aquatone) ──► visual triage of large host lists
-[7] Manual banner grabbing ───────► confirm/verify automated findings
+STEP 1 — Live host confirmation
+  $ cat subdomains.txt | httpx -silent -title -status-code
+  → confirms which of the passively-discovered subdomains are actually live right now
+
+STEP 2 — Port/service scan on confirmed live hosts
+  $ nmap -sV -p- vpn.example-corp.com
+  → reveals OpenVPN on 1194 and an outdated OpenSSH banner on 22
+
+STEP 3 — Vulnerability template scan
+  $ nuclei -u https://api-staging.example-corp.com -t cves/,exposures/
+  → flags a misconfigured CORS policy and an exposed .git directory (exposures/git-config)
+
+STEP 4 — Directory brute-force on flagged host
+  $ ffuf -w common.txt -u https://api-staging.example-corp.com/FUZZ
+  → surfaces /api/v1/internal/users — an undocumented internal endpoint
+
+STEP 5 — Visual triage across the full live host list
+  $ aquatone -ports large -out ./aquatone-report < subdomains.txt
+  → screenshot grid lets you eyeball 40 hosts in 5 minutes and flag the 3 that look like internal admin tools accidentally exposed
+
+STEP 6 — Manual verification
+  $ nc api-staging.example-corp.com 443 -- (or use openssl s_client)
+  → manually confirm the CORS/git findings aren't false positives before they go in the report
 ```
-**Rule of active recon:** every packet you send is potentially logged. Scope + authorization first, always.
+
+**Output of this phase:** confirmed live infrastructure, one outdated SSH service, an exposed `.git` directory (potential source-code leak), and an undocumented internal API endpoint — each finding independently reproducible and screenshotted for the report.
 
 ---
 
-## 🧠 0x06 — CORRELATION TECHNIQUES (where the real skill lives)
+# 0x06 — CORRELATION & ANALYSIS TRADECRAFT
 
-- **Username pivoting** — one handle across platforms often unravels a full identity graph.
-- **Email → breach → password pattern** — reveals reuse habits, not just old passwords.
-- **Metadata cross-referencing** — EXIF GPS + document author fields + timestamps = pattern of life.
-- **Infrastructure clustering** — shared SSL certs, favicon hashes, or ASN often link "unrelated" assets to one org.
-- **Timeline reconstruction** — Wayback + git commit history + social post timestamps = behavioral map.
-- **Negative space analysis** — what's *conspicuously absent* (scrubbed profiles, deleted repos) is itself intel.
+This is where raw data becomes actual intelligence:
+
+| Technique | Worked Example |
+|---|---|
+| **Username pivoting** | A GitHub commit by `jdoe_dev` leads to a Twitter/X account with the same handle, which links to a personal blog revealing the person's real name and employer — now you have a phishing pretext with real personal detail. |
+| **Email → breach → password pattern** | `jsmith@target.com` appears in 3 breaches, each showing a variation of the same base password (`Summer2021!`, `Summer2022!`) — revealing a seasonal password-rotation habit worth testing (in an authorized password-spray, never against live prod without scope). |
+| **Metadata cross-referencing** | A PDF's "last modified by" field says `M.Chen`, and a LinkedIn search for "M Chen" at the target company returns exactly one match — identity confirmed. |
+| **Infrastructure clustering** | Three "unrelated" domains all present the same self-signed SSL certificate fingerprint — revealing they're actually hosted on the same internal server. |
+| **Timeline reconstruction** | Wayback snapshots + a GitHub repo's commit history + a LinkedIn "started new position" post all line up to the same week — confirming exactly when a new system went live. |
+| **Negative space** | A former employee's GitHub repo containing the company's deployment scripts was deleted last month — right after a public vulnerability disclosure. The *deletion itself* is a signal worth noting in the report. |
 
 ---
 
-## 📜 0x07 — FINAL WORD
+# 0x07 — OPSEC FOR THE INVESTIGATOR
+
+- **Sock puppet accounts** — never use your personal/work identity to interact with target-adjacent platforms.
+- **VPN/VPS egress** — route active scanning through infrastructure that isn't tied back to you (and is documented in your ROE/scope agreement).
+- **Browser isolation** — use a dedicated, cookie-clean browser profile (or VM) for OSINT work so your own tracking cookies/fingerprint don't leak into results or tip off the target via analytics.
+- **Rate-limit yourself** — aggressive dorking/scraping can get your IP flagged or banned by the platform, burning the lead.
+- **Never escalate scope on your own** — a passive engagement finding something "interesting" is not authorization to actively scan it. Go back to the client/scope document.
+
+---
+
+# 0x08 — CLOSING DOCTRINE
 
 ```
 > recon is not a checklist, it's a discipline.
 > the best operators aren't the ones with the most tools —
-> they're the ones who know which ONE tool answers the question in front of them.
-> collect ethically. document rigorously. authorize everything.
+> they're the ones who know which ONE tool answers the question in front of them,
+> and who can explain, in plain language, WHY a finding matters.
+> collect ethically. verify rigorously. authorize everything. document relentlessly.
 ```
 
 **stay sharp. stay legal. stay curious.**
-```
