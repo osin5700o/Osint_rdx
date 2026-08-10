@@ -1,1 +1,335 @@
+# 🕵️ OSINT MASTER GUIDE: Essential & Advanced Tools for C|OSINT|P
+## *The Complete Reconnaissance Arsenal for Modern Investigators*
 
+---
+
+## 🎯 TABLE OF CONTENTS
+1. [Fundamentals](#-fundamentals)
+2. [50 Essential & Advanced Tools](#-50-essential--advanced-tools)
+3. [Google Dorks & Search Techniques](#-google-dorks--search-techniques)
+4. [Passive Reconnaissance](#-passive-reconnaissance)
+5. [Active Reconnaissance](#-active-reconnaissance)
+
+---
+
+## 🔑 FUNDAMENTALS
+
+### The OSINT Mindset
+┌─────────────────────────────────────────────┐ 
+│ OSINT = Publicly Available + Methodology │ │
+The art of finding what's hidden in plain │ │
+sight through systematic research │ 
+└─────────────────────────────────────────────┘
+
+Code
+
+### Core Principles Every C|OSINT|P Must Know
+
+#### 1. **OPSEC is LIFE**
+- Never reveal your real IP
+- Use VPNs, proxies, Tor when necessary
+- Compartmentalize your digital footprint
+- Use separate personas for different investigations
+- Clean browser data & cache regularly
+
+#### 2. **The 7 Layers of Reconnaissance**
+Layer 1: Public Records & Documents Layer 2: Social Media & Digital Presence Layer 3: Network Infrastructure Layer 4: Domain & DNS Information Layer 5: Web Application Structure Layer 6: Employee/People Information Layer 7: Physical Location Intelligence
+
+Code
+
+#### 3. **Data Classification**
+- **Attribution Data**: Links source to target
+- **Behavioral Data**: Shows patterns & habits
+- **Technical Data**: IP, DNS, server info
+- **Personal Data**: Names, phones, emails
+- **Financial Data**: Transactions, accounts
+- **Geolocation Data**: Physical location traces
+
+#### 4. **Source Verification Framework (SVF)**
+Primary Source → Cross-Reference → Corroborate → Verify Timeline
+
+Code
+
+#### 5. **Legal & Ethical Boundaries**
+- Know your jurisdiction's laws
+- Distinction between OSINT (legal) & hacking (illegal)
+- Don't access restricted systems
+- Respect privacy & data protection laws
+- Document everything for legal defense
+
+#### 6. **The Information Lifecycle**
+- **Collection**: Gather from multiple sources
+- **Analysis**: Connect patterns & dots
+- **Validation**: Confirm accuracy
+- **Production**: Create intelligence report
+- **Dissemination**: Share findings responsibly
+
+#### 7. **Critical Thinking Skills**
+- Question sources & motivations
+- Identify bias & disinformation
+- Separate fact from speculation
+- Build timeline-based narratives
+- Map relationships & connections
+
+---
+
+## 🛠️ 50 ESSENTIAL & ADVANCED TOOLS
+
+### **TIER 1: FOUNDATION TOOLS** ⭐⭐⭐
+
+1. **Shodan** - The Internet's Search Engine | Freemium
+2. **Google Search** - Master with dorks | Free
+3. **Shodan CLI** - Batch automation | Freemium
+4. **TheHarvester** - Email & subdomain enum | Free (OSS)
+5. **Whois Lookup** - Domain registration data | Free/Freemium
+6. **DNS Tools (Dig/Nslookup)** - DNS records | Free
+7. **Wayback Machine** - Historical snapshots | Free
+8. **Maltego** - Visual link analysis | Freemium
+9. **OSINT Framework** - Curated dashboard | Free
+10. **Censys** - Internet-wide scanning | Freemium
+
+### **TIER 2: SUBDOMAIN & DOMAIN INTEL** 🔍
+
+11. **Subfinder** - Fast subdomain enum | Free (OSS)
+12. **Assetfinder** - CT log subdomains | Free (OSS)
+13. **Amass** - Advanced enum + brute | Free (OSS)
+14. **DNSDumpster** - Visual DNS recon | Free
+15. **Crt.sh** - Certificate Transparency | Free
+16. **VirusTotal** - File/URL reputation | Freemium
+17. **URLhaus** - Malicious URL database | Free
+18. **AlienVault OTX** - Threat exchange | Free
+19. **Domaintools** - WHOIS history | Freemium
+20. **SecurityTrails** - Historical DNS | Freemium
+
+### **TIER 3: PEOPLE & EMAIL INTEL** 👤
+
+21. **Hunter.io** - Professional email finder | Freemium
+22. **RocketReach** - B2B database | Freemium
+23. **Pipl** - People search aggregator | Freemium
+24. **BeenVerified** - Background search | Freemium
+25. **Spokeo** - People verification | Freemium
+26. **Clearbit** - B2B enrichment | Freemium/Enterprise
+27. **LinkedIn** - Public profiles | Free/Premium
+28. **Gravatar** - Email to profile mapping | Free
+29. **Namechk** - Username availability | Free
+30. **Reverse Email Lookup** - Account finder | Free/Freemium
+
+### **TIER 4: SOCIAL MEDIA & GEOLOCATION** 📍
+
+31. **Sherlock** - 300+ site username search | Free (OSS)
+32. **Ghunt** - Google account investigation | Free (OSS)
+33. **Bellingcat Toolkit** - Geo-verification | Free
+34. **Google Earth/Maps** - Satellite imagery | Free
+35. **TinEye** - Reverse image search | Freemium
+36. **Yandex Images** - Alternative image search | Free
+37. **EXIF Data Tools** - Photo metadata | Free
+38. **Geoguessr** - Geo-training & skill builder | Freemium
+39. **Snap Map** - Location stories | Free (app)
+40. **Twitter Advanced Search** - Geo filtering | Free
+
+### **TIER 5: INFRASTRUCTURE & TECHNICAL** ⚙️
+
+41. **BGPView** - Autonomous System info | Free
+42. **WHOIS AS Lookup** - AS details | Free
+43. **MaxMind GeoIP2** - IP geolocation | Freemium
+44. **IP2Location** - Geolocation & VPN detect | Freemium
+45. **OpenPhish** - Phishing URL database | Free
+46. **SpyOnWeb** - Related websites | Freemium
+47. **BuiltWith** - Tech stack detection | Freemium
+48. **Wappalyzer** - Web technologies | Freemium
+49. **SSL Labs** - Certificate analysis | Free
+50. **Recon-ng** - Reconnaissance framework | Free (OSS)
+
+---
+
+## 🔎 GOOGLE DORKS - 15 CATEGORIES
+
+### Category 1: EXPOSED CREDENTIALS
+inurl:user password site:pastebin.com "password" "username" site:github.com "password" "api_key"
+
+Code
+
+### Category 2: ADMIN PANELS
+inurl:admin inurl:cpanel intitle:"admin" "Welcome"
+
+Code
+
+### Category 3: DATABASE LEAKS
+filetype:sql dump "CREATE TABLE" filetype:sql
+
+Code
+
+### Category 4: SENSITIVE DOCUMENTS
+filetype:pdf confidential filetype:xls financial
+
+Code
+
+### Category 5: SOURCE CODE & CONFIG
+filetype:conf ".env" filetype:env
+
+Code
+
+### Category 6: API KEYS & SECRETS
+"api_key=" OR "apikey=" "AWS_SECRET_ACCESS_KEY"
+
+Code
+
+### Category 7: EMPLOYEE DIRECTORIES
+site:linkedin.com "company name" site:target.com people OR team
+
+Code
+
+### Category 8: SUBDOMAINS
+site:*.target.com *.target.com inurl:
+
+Code
+
+### Category 9: EXPOSED CAMERAS & IoT
+intitle:"webcam" intitle:"ip camera"
+
+Code
+
+### Category 10: METADATA
+filetype:jpg inurl: site:target.com inurl:image
+
+Code
+
+### Category 11: CACHED CONTENT
+cache:target.com site:webcache.googleusercontent.com
+
+Code
+
+### Category 12: GITHUB SECRETS
+org:company_name filename:".env" filename:"private_key"
+
+Code
+
+### Category 13: FINANCIAL INFO
+site:sec.gov company name filetype:pdf "financial"
+
+Code
+
+### Category 14: ERROR MESSAGES
+"fatal error" "target.com" "sql syntax error" site:target.com
+
+Code
+
+### Category 15: LEGAL DOCS
+site:pacer.uscourts.gov filetype:pdf lawsuit
+
+Code
+
+---
+
+## 🕯️ PASSIVE RECONNAISSANCE (6-PHASE)
+
+**Phase 1: Digital Footprinting**
+- Google name variations, image search, news
+- WHOIS lookup (current & historical)
+- Wayback Machine snapshots
+- Technology stack analysis
+
+**Phase 2: Network Intelligence**
+- AS (Autonomous System) lookup
+- IP range identification via BGP
+- Shodan/Censys queries
+- Certificate Transparency logs
+
+**Phase 3: Personnel Intelligence**
+- LinkedIn scraping (check ToS)
+- Twitter employee mentions
+- GitHub commits & profiles
+- Email pattern discovery
+
+**Phase 4: Open Source Intelligence**
+- SEC filings & court records
+- Patent office lookups
+- Real estate records
+- Press releases & news
+
+**Phase 5: Digital Footprint Analysis**
+- GitHub organization repos
+- Leaked credentials in commits
+- Social media analysis
+- Technology hints
+
+**Phase 6: Technical Passive Scanning**
+- DNS queries (A, AAAA, MX, TXT, NS, CNAME)
+- Certificate history & rotation
+- Passive subdomain enumeration
+- No port scanning!
+
+---
+
+## ⚔️ ACTIVE RECONNAISSANCE (7-PHASE)
+
+**Phase 1: Enumeration (Aggressive)**
+- Subdomain brute force (Amass, Subfinder)
+- Port scanning (Nmap)
+- Vulnerability scanning (Nessus, OpenVAS)
+
+**Phase 2: Web Application Scanning**
+- Directory enumeration (Gobuster, ffuf)
+- HTTP methods & headers analysis
+- Technology detection
+
+**Phase 3: DNS Enumeration (Active)**
+- Zone transfer attempts
+- Reverse DNS lookup
+- Wildcard detection
+
+**Phase 4: Service Enumeration**
+- Banner grabbing (SSH, FTP, HTTP, SMTP)
+- Service version detection
+- Known CVE matching
+
+**Phase 5: SSL/TLS Analysis**
+- Certificate analysis & chain
+- Weak cipher detection
+- Heartbleed, POODLE, Beast checks
+
+**Phase 6: Web Content Discovery**
+- API endpoint enumeration
+- Backup file discovery
+- Fuzzing (Wfuzz, Burp)
+
+**Phase 7: Credential Discovery**
+- Leaked credential databases (DeHashed)
+- Breach compilations
+- Default credential testing
+
+---
+
+## 🎓 CRITICAL CONCEPTS
+
+**The 7-Layer Cyber Kill Chain** (Your role in reconnaissance)
+**Threat Intelligence Levels** (Strategic, Tactical, Operational, Technical)
+**Indicators of Compromise** (IOCs: IPs, domains, file hashes)
+**Attribution Framework** (Collect → Analyze → Identify → Verify)
+
+---
+
+## 🔐 OPSEC CHECKLIST
+
+**Before:** Dedicated VM, VPN/Tor, clear cache, disable JS, privacy DNS
+**During:** Separate personas, different IPs, offline docs, encrypted storage
+**After:** Wipe history, clear downloads, remove temp files, secure storage
+
+---
+
+## 🎯 KEY TAKEAWAYS
+
+1. **Methodology > Tools** — Process beats expensive tools
+2. **Verification is Everything** — Always cross-reference
+3. **OPSEC First** — Anonymity is your asset
+4. **Legal Boundaries** — Know and respect them
+5. **Passive Before Active** — Avoid detection
+6. **Source Documentation** — Prove your work
+7. **Confidence Rating** — State your certainty
+8. **Timeline Analysis** — Connect dots chronologically
+9. **Never Stop Learning** — OSINT evolves daily
+10. **Think Like Detective** — Connect evidence, find patterns
+
+---
+
+**🛡️ Made with 🖤 for investigators, researchers & security professionals | ⚠️ USE RESPONSIBLY & LEGALLY**
