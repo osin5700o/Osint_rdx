@@ -1,1 +1,198 @@
+```
+ ██████╗ ███████╗██╗███╗   ██╗████████╗
+██╔═══██╗██╔════╝██║████╗  ██║╚══██╔══╝    
+██║   ██║███████╗██║██╔██╗ ██║   ██║      
+██║   ██║╚════██║██║██║╚██╗██║   ██║       
+╚██████╔╝███████║██║██║ ╚████║   ██║      
+ ╚═════╝ ╚══════╝╚═╝╚═╝  ╚═══╝   ╚═╝   
+```
 
+> **field manual :: recon fundamentals for the working OSINT practitioner**
+> *know the target before the target knows you exist.*
+
+---
+
+## ⚡ 0x00 — GROUND RULES
+
+- Recon is **80% patience, 20% tooling**. The tools don't think for you.
+- **Passive** = never touch the target's infrastructure. No packets to them, ever.
+- **Active** = you send traffic they *could* see in their logs.
+- Always operate inside **written scope/authorization**. No exceptions, no "just checking."
+- Document everything. Recon without notes is recon you'll redo.
+- **OPSEC applies to you too** — VPN/VPS, burner accounts, no fingerprint leakage.
+
+---
+
+## 🕶️ 0x01 — THE MINDSET (Fundamentals)
+
+| Principle | What it means |
+|---|---|
+| **Attack Surface Thinking** | Every subdomain, employee, PDF metadata field, and S3 bucket is a door. |
+| **OSINT Cycle** | Plan → Collect → Process → Analyze → Disseminate → Repeat |
+| **Correlation > Collection** | Raw data is noise. Linking username → email → breach → real name is the skill. |
+| **Diminishing Returns** | Know when to stop digging on one lead and pivot. |
+| **Chain of Custody** | Screenshot + timestamp + archive everything. Data disappears. |
+| **The 3 Whys** | Who owns this? Why does it exist? Why is it exposed? |
+
+---
+
+## 🌐 0x02 — 20 ESSENTIAL GOOGLE DORKS
+
+```
+site:target.com                                  » scope enumeration
+site:target.com -www                              » non-standard subdomains
+site:target.com ext:pdf | ext:docx | ext:xlsx     » sensitive documents
+site:target.com intitle:"index of"                » open directory listings
+site:target.com inurl:admin | inurl:login          » exposed panels
+site:target.com filetype:env "DB_PASSWORD"        » leaked env/config files
+site:target.com intext:"internal use only"        » leaked internal docs
+site:pastebin.com "target.com"                    » credential/data dumps
+site:github.com "target.com" password             » hardcoded secrets in repos
+site:target.com inurl:wp-content | inurl:wp-admin » WordPress footprint
+intitle:"welcome to nginx" site:target.com         » default/misconfigured servers
+site:target.com ext:log                           » exposed log files
+site:target.com inurl:"/api/" filetype:json        » exposed API endpoints
+"target.com" intext:"@target.com" filetype:xls    » employee email harvesting
+site:linkedin.com/in "target company"             » employee enumeration
+site:target.com inurl:backup | inurl:.bak         » backup file exposure
+cache:target.com                                  » cached historical content
+site:s3.amazonaws.com "target"                    » exposed S3 buckets
+related:target.com                                » competitor/infra mapping
+site:target.com ext:sql | ext:db                  » exposed database dumps
+```
+
+**Advanced operators to chain:** `AROUND(n)` proximity search · `allintext:` · `numrange:` · `inanchor:` · combine with `-inurl:` to exclude noise.
+
+---
+
+## 🧰 0x03 — 50 TOOLS OF THE TRADE
+
+### 🔍 Passive Recon / OSINT Frameworks
+```
+01. theHarvester        » email, subdomain, employee enum from public sources
+02. Maltego              » entity relationship mapping & visualization
+03. SpiderFoot            » automated OSINT aggregation, 200+ modules
+04. Recon-ng              » modular recon framework, Metasploit-style
+05. Amass                 » attack surface mapping & subdomain enum
+06. Shodan                » internet-connected device search engine
+07. Censys                 » internet-wide scan data & cert transparency
+08. FOCA                   » metadata extraction from public documents
+09. Google Dorks / GHDB   » search-engine based recon
+10. Wayback Machine       » historical snapshots of target sites
+```
+
+### 🧑‍💻 People / Social Recon
+```
+11. Sherlock               » username enumeration across 300+ platforms
+12. Social-Analyzer        » profile discovery & analysis across networks
+13. Whatsmyname            » username presence checker (web version too)
+14. Pipl / Intelius        » people-search aggregators
+15. Hunter.io               » email discovery & verification
+16. Have I Been Pwned      » breach/credential exposure lookup
+17. LinkedIn + Crosslinked » employee/org chart enumeration
+18. Namechk                 » username/domain availability across platforms
+19. IntelTechniques Tools  » Michael Bazzell's search tool suite
+20. Pastebin/Dehashed      » leaked credential & paste search
+```
+
+### 🌐 Domain / Infrastructure Recon
+```
+21. WHOIS / RDAP           » domain registration data
+22. DNSdumpster            » DNS recon & subdomain mapping
+23. crt.sh                  » certificate transparency log search
+24. Sublist3r               » subdomain enumeration
+25. Assetfinder             » fast subdomain discovery
+26. dnsrecon                » DNS enumeration & zone transfer testing
+27. Fierce                  » DNS recon for non-contiguous IP space
+28. SecurityTrails          » historical DNS/WHOIS/passive DNS data
+29. BuiltWith               » tech stack fingerprinting
+30. Wappalyzer               » web technology identification
+```
+
+### 🖥️ Active Recon / Scanning
+```
+31. Nmap                    » port/service/OS scanning (the classic)
+32. Masscan                 » internet-scale fast port scanning
+33. httpx                    » HTTP probing at scale
+34. Nuclei                   » template-based vuln scanning
+35. Gobuster / ffuf          » directory & subdomain brute-forcing
+36. Nikto                    » web server vulnerability scanning
+37. WhatWeb                  » web app fingerprinting
+38. Aquatone                 » visual recon / screenshot subdomains
+39. EyeWitness                » screenshot + service report of hosts
+40. Netcat                    » banner grabbing & manual probing
+```
+
+### 🗺️ Geo / Image / Metadata
+```
+41. ExifTool                 » image/document metadata extraction
+42. Google Earth Pro         » geolocation cross-referencing
+43. Yandex Reverse Image     » reverse image search (best for faces)
+44. TinEye                    » reverse image search
+45. Overpass Turbo            » OpenStreetMap data queries for geoint
+46. SunCalc                    » shadow analysis for geolocation timing
+```
+
+### 🧩 Aggregators / Automation / Misc
+```
+47. OSINT Framework (osintframework.com) » categorized tool directory
+48. Datasploit                » automated OSINT for domains/people/orgs
+49. GHunt                      » Google account OSINT (email → footprint)
+50. Holehe                     » check email registration across platforms
+```
+
+---
+
+## 🕵️ 0x04 — PASSIVE RECON WORKFLOW
+
+```
+[1] WHOIS + RDAP lookup ─────────► registrant, nameservers, creation date
+[2] crt.sh / cert transparency ──► subdomain harvest via SSL certs
+[3] DNSdumpster + SecurityTrails► historical DNS, mail servers, ASN
+[4] Google/Bing/Yandex dorking ──► indexed files, panels, leaked docs
+[5] Shodan/Censys ────────────────► exposed services, banners, no direct contact
+[6] LinkedIn/GitHub enum ────────► org structure, tech stack, tribal knowledge
+[7] Breach DB correlation ───────► HIBP, Dehashed → credential exposure
+[8] Wayback Machine ──────────────► deleted/changed content, old endpoints
+```
+**Rule of passive recon:** if your traffic ever reaches the target's server directly, it's not passive anymore.
+
+---
+
+## ⚔️ 0x05 — ACTIVE RECON WORKFLOW
+
+```
+[1] Nmap (top ports → full scan) ─► open ports, service versions, OS guess
+[2] httpx + Wappalyzer ───────────► live host confirmation, tech stack
+[3] Gobuster/ffuf directory brute─► hidden endpoints, admin panels
+[4] Nuclei template scan ─────────► known CVEs & misconfig detection
+[5] Nikto/WhatWeb ─────────────────► web server specific weaknesses
+[6] Screenshot sweep (Aquatone) ──► visual triage of large host lists
+[7] Manual banner grabbing ───────► confirm/verify automated findings
+```
+**Rule of active recon:** every packet you send is potentially logged. Scope + authorization first, always.
+
+---
+
+## 🧠 0x06 — CORRELATION TECHNIQUES (where the real skill lives)
+
+- **Username pivoting** — one handle across platforms often unravels a full identity graph.
+- **Email → breach → password pattern** — reveals reuse habits, not just old passwords.
+- **Metadata cross-referencing** — EXIF GPS + document author fields + timestamps = pattern of life.
+- **Infrastructure clustering** — shared SSL certs, favicon hashes, or ASN often link "unrelated" assets to one org.
+- **Timeline reconstruction** — Wayback + git commit history + social post timestamps = behavioral map.
+- **Negative space analysis** — what's *conspicuously absent* (scrubbed profiles, deleted repos) is itself intel.
+
+---
+
+## 📜 0x07 — FINAL WORD
+
+```
+> recon is not a checklist, it's a discipline.
+> the best operators aren't the ones with the most tools —
+> they're the ones who know which ONE tool answers the question in front of them.
+> collect ethically. document rigorously. authorize everything.
+```
+
+**stay sharp. stay legal. stay curious.**
+```
